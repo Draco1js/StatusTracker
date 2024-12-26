@@ -1,11 +1,6 @@
 import { Command, MessageEmbed } from '../../aetherial/src';
 import Activity from '../../schemas/Activity';
-import convertMs from '../../utils/convertMs';
-import emojis from '../../emojis.json';
-
-interface Emojis {
-	[key: string]: string;
-}
+import activityView from '../../views/activity';
 
 export default {
 	name: 'top',
@@ -34,11 +29,8 @@ export default {
 			.setTimestamp(Date.now());
 
 		for (let activity of activities) {
-			let emojiName = activity.name.normalize('NFC').replace(/ /gm, "").replace(/\-/gm, "")
-			if (emojiName == "TomClancy'sRainbowSixSiege") emojiName = "RainbowSixSiege";
-			let emojiId: string = (emojis as Emojis)[emojiName];
-			let emoji = emojiId ? `<:${emojiName}:${emojiId}> ` : '';
-			embed.addField(`${emoji}${activity.name}`, `Duration: ${convertMs(activity.duration)}`);
+			let view = activityView(activity)
+			embed.addField(view[0], view[1]);
 		}
 
 		return interaction.reply({ embeds: [embed] });

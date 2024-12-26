@@ -9,6 +9,12 @@ services:
         restart: unless-stopped
         networks:
             - st_network
+
+    restarter:
+        image: docker:cli
+        volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+        command: ["/bin/sh", "-c", "while true; do sleep 86400; docker restart st-bot-1; done"]
+        restart: unless-stopped
         
     api:
         build:
