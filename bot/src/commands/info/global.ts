@@ -10,7 +10,7 @@ export default {
             {
                 $group: {
                     _id: "$name",
-                    duration: { $sum: "$duration" }
+                    totalDuration: { $sum: "$duration" }
                 }
             },
             {
