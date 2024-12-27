@@ -12,6 +12,8 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@sentry/node": "^8.47.0",
+    "@sentry/profiling-node": "^8.47.0",
     "aetherial": "^1.0.10",
     "mongoose": "^8.5.1",
     "signale": "^1.4.0"

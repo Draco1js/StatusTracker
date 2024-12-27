@@ -1,4 +1,6 @@
 {
     "token": "YOUR_BOT_TOKEN",
-    "mongo": "YOUR_MONGO_URI"
+    "publicKey": "YOUR_PUBLIC_KEY",
+    "mongo": "YOUR_MONGO_URI",
+    "sentry": "SENTRY_DSN"
 }

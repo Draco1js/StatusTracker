@@ -1,7 +1,9 @@
+import './instrument';
 import { loadCommands, Shard } from './aetherial/src';
 import config from '../config.json';
 import { track } from './tracker/tracker';
 import mongoose from 'mongoose';
+import Sentry from '@sentry/node'
 
 process.env.NODE_ENV = 'development';
 
@@ -19,6 +21,7 @@ loadCommands(client.client.commands);
 
 // command handler
 client.on('interactionCreate', (interaction) => {
+    Sentry.profiler.startProfiler();
     //if (!interaction.isCommand()) return; // this is not in the aetherial library yet
 
     const command = client.client.commands.get(interaction.commandName);
@@ -34,6 +37,8 @@ client.on('interactionCreate', (interaction) => {
             ephemeral: true,
         });
     }
+
+    Sentry.profiler.stopProfiler();
 });
 
 mongoose.connect(config.mongo);
