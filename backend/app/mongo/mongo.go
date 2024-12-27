@@ -95,3 +95,31 @@ func FindActivities(client *mongo.Client, id string) []bson.M {
 
 	return results
 }
+
+func FindAllActivities(client *mongo.Client) []bson.M {
+	coll := client.Database("production").Collection("activities")
+
+	// Define the aggregation pipeline
+	pipeline := mongo.Pipeline{
+		// Group by name and sum up the duration for each name
+		{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: "$name"}, // Group by activity name
+			{Key: "total_duration", Value: bson.D{{Key: "$sum", Value: "$duration"}}},
+		}}},
+		// Sort by total_duration in descending order
+		{{Key: "$sort", Value: bson.D{{Key: "total_duration", Value: -1}}}},
+	}
+
+	// Execute the aggregation
+	cursor, err := coll.Aggregate(context.TODO(), pipeline)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var results []bson.M
+	if err = cursor.All(context.TODO(), &results); err != nil {
+		log.Fatal(err)
+	}
+
+	return results
+}

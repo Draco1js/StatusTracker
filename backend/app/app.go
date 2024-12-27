@@ -2,10 +2,11 @@ package app
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/vicanso/go-charts/v2"
 	"net/http"
 	stmongo "st/backend/app/mongo"
+
+	"github.com/gin-gonic/gin"
+	"github.com/vicanso/go-charts/v2"
 )
 
 type App struct {
@@ -62,6 +63,14 @@ func (a *App) Run() {
 
 		c.JSON(http.StatusOK, gin.H{
 			"user":       user,
+			"activities": activities,
+		})
+	})
+
+	a.server.GET("/global", func(c *gin.Context) {
+		activities := stmongo.FindAllActivities(mongoc.Client)
+
+		c.JSON(http.StatusOK, gin.H{
 			"activities": activities,
 		})
 	})
