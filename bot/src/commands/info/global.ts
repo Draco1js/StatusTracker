@@ -10,7 +10,7 @@ export default {
             {
                 $group: {
                     _id: "$name",
-                    totalDuration: { $sum: "$duration" }
+                    duration: { $sum: "$duration" }
                 }
             },
             {
@@ -37,7 +37,8 @@ export default {
             .setDescription('Top played Activities on StatusTracker')
             .setTimestamp(Date.now());
 
-        for (let activity of activities) {
+        for (let activityAgg of activities) {
+            let activity = { name: activityAgg._id, duration: activityAgg.totalDuration }
             let view = activityView(activity)
             embed.addField(view[0], view[1]);
         }

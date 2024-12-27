@@ -11,9 +11,9 @@ export default function activityView(activity: Activity) {
 
 interface Activity {
     name: string;
-    id: string;
+    id?: string;
     duration: number;
-    last_tracked: number;
+    last_tracked?: number;
 }
 
 type ActivityField = [string, string];
