@@ -3,7 +3,7 @@ import { loadCommands, Shard } from './aetherial/src';
 import config from '../config.json';
 import { track } from './tracker/tracker';
 import mongoose from 'mongoose';
-import * as Sentry from '@sentry/node'
+import * as Sentry from '@sentry/node';
 
 process.env.NODE_ENV = 'development';
 
@@ -11,6 +11,8 @@ const client = new Shard();
 
 client.on('shardReady', (shard) => {
     console.log(`Shard ${shard[0]} is ready!`);
+
+    client.updatePresence({ status: 'online', name: 'Tracking Presences' });
 
     setInterval(() => {
         track(client);
