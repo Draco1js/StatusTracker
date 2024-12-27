@@ -3,7 +3,7 @@ import { loadCommands, Shard } from './aetherial/src';
 import config from '../config.json';
 import { track } from './tracker/tracker';
 import mongoose from 'mongoose';
-import Sentry from '@sentry/node'
+import * as Sentry from '@sentry/node'
 
 process.env.NODE_ENV = 'development';
 
