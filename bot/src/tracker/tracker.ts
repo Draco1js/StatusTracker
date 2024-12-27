@@ -86,7 +86,7 @@ export async function track(client: Shard) {
                 });
             } else {
 
-                let upstream = { $inc: { duration }, $set: { last_tracked: Date.now() } }
+                let upstream = { $inc: { duration } as UpstreamInc, $set: { last_tracked: Date.now() } as UpstreamSet }
 
                 // same session
                 if(act.currentActivityStartTimestamp != activity.timestamps.start) {
@@ -120,4 +120,14 @@ export async function track(client: Shard) {
     }
 
     console.log('Tracking complete.');
+}
+
+interface UpstreamInc {
+    duration: number;
+    timesPlayed?: number;
+}
+
+interface UpstreamSet {
+    last_tracked: number;
+    currentActivityStartTimestamp?: number;
 }
