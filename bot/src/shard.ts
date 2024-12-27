@@ -12,6 +12,7 @@ const client = new Shard();
 client.on('shardReady', (shard) => {
     console.log(`Shard ${shard[0]} is ready!`);
 
+    // @ts-ignore
     client.updatePresence({ status: 'online', name: 'Tracking Presences' });
 
     setInterval(() => {
