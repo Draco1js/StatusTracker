@@ -93,6 +93,7 @@ export async function track(client: Shard) {
                     upstream.$inc.timesPlayed++;
                 }
 
+                if(!act.timestamps) console.log(`NO_TIMESTAMP`, act);
                 upstream.$set.currentActivityStartTimestamp = act.timestamps.start;
 
                 bulkActivityUpdates.push({

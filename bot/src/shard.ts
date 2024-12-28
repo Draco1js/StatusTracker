@@ -13,7 +13,7 @@ client.on('shardReady', (shard) => {
     console.log(`Shard ${shard[0]} is ready!`);
 
     // @ts-ignore
-    client.updatePresence({ status: 'online', name: 'Tracking Presences' });
+    //client.updatePresence({ status: 'online', name: 'Tracking Presences' });
 
     setInterval(() => {
         track(client);

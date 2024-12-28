@@ -2,3 +2,6 @@
 config.json
 dist
 /src/Aetherial
+
+# Sentry Config File
+.sentryclirc

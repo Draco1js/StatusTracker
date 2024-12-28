@@ -35,5 +35,6 @@ FROM debian:stable-slim AS runtime
 WORKDIR /app
 COPY --from=builder /app /app
 COPY --from=builder /usr/local/nvm/versions/node/v20.10.0/bin/node /bin/node
+ENV NODE_ENV=production
 
 CMD ["node", "./dist"]
