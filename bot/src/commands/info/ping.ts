@@ -19,4 +19,4 @@ export default {
             })
         });
     }
-} as Command<ShardInteraction>;
+} as Command;
