@@ -16,7 +16,7 @@ export class TrackState {
         bulkActivityQueue: any[],
         bulkUserQueue: any[]
     ) {
-        if (!presence.activities.length) return; // skip if no activities
+        
         this.presence = presence;
         this.activityCache = activityCache;
         this.bulkActivityQueue = bulkActivityQueue;
@@ -24,6 +24,7 @@ export class TrackState {
     }
 
     public async track() {
+        if (!this.presence.activities.length) return; // skip if no activities
         for (let activity of this.presence.activities) {
             try {
                 if (!this.isCompatible(activity)) continue;
@@ -156,8 +157,8 @@ export class TrackState {
         };
 
         // same session
-        if (last_sessionID == sessionID) {
-            upstream.$inc.timesPlayed++;
+        if (last_sessionID !== sessionID) {
+            upstream.$inc.timesPlayed = 1;
         }
 
         upstream.$set.last_sessionID = sessionID;
