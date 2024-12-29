@@ -94,7 +94,7 @@ export async function track(client: Shard) {
                 }
 
                 if(!act.timestamps) console.log(`NO_TIMESTAMP`, act);
-                console.log({ presence });
+                console.log({ presence: JSON.stringify(presence), activity: JSON.stringify(activity), act: JSON.stringify(act) });
                 upstream.$set.currentActivityStartTimestamp = act.timestamps.start;
 
                 bulkActivityUpdates.push({
