@@ -18,12 +18,13 @@ export async function track(client: Shard) {
 
     for (let presence of client.presences.values()) {
         try {
-            new TrackState( //@ts-ignore
+            let state = new TrackState( //@ts-ignore
                 presence,
                 activityCache,
                 bulkActivityQueue,
                 bulkUserQueue
             );
+            await state.track();
         } catch (error) {
             console.log('ERROR -> Presence:', presence.user.id);
             console.log(error);

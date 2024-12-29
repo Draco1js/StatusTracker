@@ -1,3 +1,4 @@
+import Activity from '../schemas/Activity';
 import xfc_alias from '../utils/alias';
 
 const incompatibleID = [3, 4, 6];
@@ -20,11 +21,13 @@ export class TrackState {
         this.activityCache = activityCache;
         this.bulkActivityQueue = bulkActivityQueue;
         this.bulkUserQueue = bulkUserQueue;
+    }
 
-        for (let activity of presence.activities) {
+    public async track() {
+        for (let activity of this.presence.activities) {
             try {
                 if (!this.isCompatible(activity)) continue;
-                this.calculateActivity(activity);
+                await this.calculateActivity(activity);
             } catch (error) {
                 console.log('ERROR -> Activity:', activity.name);
                 console.log(error);
@@ -32,11 +35,11 @@ export class TrackState {
         }
     }
 
-    private calculateActivity(activity: Activity) {
+    private async calculateActivity(activity: Activity) {
         let activityName = xfc_alias(activity.name);
         if (!this.validateTimestamp(activity)) return;
         let cacheKey = `${this.presence.user.id}-${activityName}`;
-        let storedActivity = this.cache(activity, cacheKey);
+        let storedActivity = await this.cache(activity, cacheKey);
         let duration = this.getDuration(activity, storedActivity);
 
         if (storedActivity.new) {
@@ -81,19 +84,25 @@ export class TrackState {
         return true;
     }
 
-    private cache(activity: Activity, cacheKey): StoredActivity {
+    private async cache(activity: Activity, cacheKey): Promise<StoredActivity> {
         let act = this.activityCache.get(cacheKey);
 
         if (!act) {
-            act = {
+            act = await Activity.findOne({
                 id: this.presence.user.id,
                 name: xfc_alias(activity.name),
-                duration: 0,
-                last_tracked: 0,
-                timesPlayed: 1,
-                last_sessionID: activity.session_id,
-                new: true, // Flag to indicate new activity
-            };
+            });
+            if (!act) {
+                act = {
+                    id: this.presence.user.id,
+                    name: xfc_alias(activity.name),
+                    duration: 0,
+                    last_tracked: 0,
+                    timesPlayed: 1,
+                    last_sessionID: activity.session_id,
+                    new: true, // Flag to indicate new activity
+                };
+            }
         }
 
         this.activityCache.set(cacheKey, act);
