@@ -7,7 +7,7 @@ export default model(
         name: { type: String, required: true },
         duration: { type: Number, required: true },
         last_tracked: { type: Number, required: true },
-        last_sessionID: { type: String, required: true, default: "" },
+        last_sessionID: { type: String, required: false, default: "" },
         timesPlayed: { type: Number, required: true, default: 1 }
     })
 );
