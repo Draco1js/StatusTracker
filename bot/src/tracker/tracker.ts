@@ -7,7 +7,7 @@ import xfc_alias from '../utils/alias';
 export async function track(client: Shard) {
     console.log('Tracking...');
 
-    if((client.wss as WebSocket).readyState === 0x3) {
+    if ((client.wss as WebSocket).readyState === 0x3) {
         console.log('WS connection closed, aborting tracking.');
         return;
     }
@@ -23,14 +23,22 @@ export async function track(client: Shard) {
             if (activity.type === 6) continue; // weird new "chilling" activity etc.
             if (activity.type === 3) continue; // watching -> doesn't have a activity.start_date
             if (activity.type === 4) continue; // custom status
-            if (activity.id === "ec0b28a579ecb4bd") continue; // this random id is apparently the bot status
-            if ((activity as any).application_id === "307998818547531777" && !activity?.timestamps?.start) continue; // Medal.tv
+            if (activity.id === 'ec0b28a579ecb4bd') continue; // this random id is apparently the bot status
+            if (
+                (activity as any).application_id === '307998818547531777' &&
+                !activity?.timestamps?.start
+            )
+                continue; // Medal.tv
 
             let activityName = xfc_alias(activity.name);
 
             if (!activity.timestamps?.start) {
-                console.log("WARN -> No start time for activity:");
-                console.log(activityName, ' -> ', (activity as any).application_id);
+                console.log('WARN -> No start time for activity:');
+                console.log(
+                    activityName,
+                    ' -> ',
+                    (activity as any).application_id
+                );
                 continue;
             }
 
@@ -50,8 +58,8 @@ export async function track(client: Shard) {
                         duration: 0,
                         last_tracked: 0,
                         timesPlayed: 1,
-                        currentActivityStartTimestamp: 0,
-                        new: true // Flag to indicate new activity
+                        last_sessionID: activity.session_id,
+                        new: true, // Flag to indicate new activity
                     };
                 }
 
@@ -71,51 +79,56 @@ export async function track(client: Shard) {
                             name: activityName,
                             duration,
                             last_tracked: Date.now(),
-                            currentActivityStartTimestamp: activity.timestamps.start,
+                            last_sessionID: activity.session_id,
                             timesPlayed: 1,
-                        }
-                    }
+                        },
+                    },
                 });
 
                 bulkUserUpdates.push({
                     updateOne: {
                         filter: { _id: presence.user.id },
                         update: { $push: { activities: act._id } },
-                        upsert: true
-                    }
+                        upsert: true,
+                    },
                 });
             } else {
-
-                let upstream = { $inc: { duration } as UpstreamInc, $set: { last_tracked: Date.now() } as UpstreamSet }
+                let upstream = {
+                    $inc: { duration } as UpstreamInc,
+                    $set: { last_tracked: Date.now() } as UpstreamSet,
+                };
 
                 // same session
-                if(act.currentActivityStartTimestamp != activity.timestamps.start) {
+                if (act.last_sessionID == activity.session_id) {
                     upstream.$inc.timesPlayed++;
                 }
 
-                if(!act.timestamps) console.log(`NO_TIMESTAMP`, act);
-                console.log({ presence: JSON.stringify(presence), activity: JSON.stringify(activity), act: JSON.stringify(act) });
-                upstream.$set.currentActivityStartTimestamp = act.timestamps.start;
+                if (!act.timestamps) console.log(`NO_TIMESTAMP`, activity);
+                upstream.$set.last_sessionID = activity.session_id;
 
                 bulkActivityUpdates.push({
                     updateOne: {
                         filter: { id: presence.user.id, name: activityName },
-                        update: upstream
-                    }
+                        update: upstream,
+                    },
                 });
             }
         }
     }
 
     if (bulkUserUpdates.length) {
-        signale.info(`[BulkWrite] Found ${bulkUserUpdates.length} updates for st/Users`);
+        signale.info(
+            `[BulkWrite] Found ${bulkUserUpdates.length} updates for st/Users`
+        );
         let t1 = Date.now();
         await User.bulkWrite(bulkUserUpdates);
         signale.info(`[BulkWrite] Completed in ${Date.now() - t1}ms`);
     }
 
     if (bulkActivityUpdates.length) {
-        signale.info(`[BulkWrite] Found ${bulkActivityUpdates.length} updates for st/Activities`);
+        signale.info(
+            `[BulkWrite] Found ${bulkActivityUpdates.length} updates for st/Activities`
+        );
         let t1 = Date.now();
         await Activity.bulkWrite(bulkActivityUpdates);
         signale.info(`[BulkWrite] Completed in ${Date.now() - t1}ms`);
@@ -131,5 +144,5 @@ interface UpstreamInc {
 
 interface UpstreamSet {
     last_tracked: number;
-    currentActivityStartTimestamp?: number;
+    last_sessionID?: string;
 }
