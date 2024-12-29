@@ -31,8 +31,8 @@ client.on('interactionCreate', (interaction) => {
 
     if (!command) return;
 
-    try {
-        command.run({ interaction });
+    try { // @ts-ignore
+        command.run({ interaction, client });
     } catch (error) {
         console.error(error);
         interaction.reply({

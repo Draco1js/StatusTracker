@@ -1,5 +1,6 @@
 import { Command, MessageEmbed } from '../../aetherial/src';
 import Activity from '../../schemas/Activity';
+import convertMs from '../../utils/convertMs';
 import activityView from '../../views/activity';
 
 export default {
@@ -22,10 +23,12 @@ export default {
 			});
 		}
 
+		let totalDuration = activities.reduce((acc, curr) => acc + curr.duration, 0);
+
 		let embed = new MessageEmbed()
 			.setColor(0x2f3136)
 			.setTitle('Top Activities')
-			.setDescription('Here are your top activities:')
+			.setDescription(`You've played for ${convertMs(totalDuration)} in total\nHere are your top activities:`)
 			.setTimestamp(Date.now());
 
 		for (let activity of activities) {
