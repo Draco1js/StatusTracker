@@ -5,10 +5,10 @@ export default {
     name: `deactivate`,
     description: `Stop tracking your activities`,
     async run({ interaction }) {
-        let state = await User.findOne({ id: interaction.user.id });
+        let state = await User.findOne({ _id: interaction.user.id });
         if (state.tracking === null) {
             await User.updateOne(
-                { id: interaction.user.id },
+                { _id: interaction.user.id },
                 { tracking: false }
             );
         }
@@ -23,7 +23,7 @@ export default {
             });
         }
 
-        await User.updateOne({ id: interaction.user.id }, { tracking: false });
+        await User.updateOne({ _id: interaction.user.id }, { tracking: false });
         return interaction.reply({
             embeds: [
                 new MessageEmbed()

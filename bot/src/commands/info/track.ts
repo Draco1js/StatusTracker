@@ -5,10 +5,10 @@ export default {
     name: `track`,
     description: `Start tracking your activities`,
     async run({ interaction }) {
-        let state = await User.findOne({ id: interaction.user.id });
+        let state = await User.findOne({ _id: interaction.user.id });
         if (state.tracking === null) {
             await User.updateOne(
-                { id: interaction.user.id },
+                { _id: interaction.user.id },
                 { tracking: true }
             );
         }
@@ -24,7 +24,7 @@ export default {
             });
         }
 
-        await User.updateOne({ id: interaction.user.id }, { tracking: true });
+        await User.updateOne({ _id: interaction.user.id }, { tracking: true });
 
         return interaction.reply({
             embeds: [

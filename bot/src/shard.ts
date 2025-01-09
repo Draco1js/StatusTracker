@@ -4,6 +4,7 @@ import config from '../config.json';
 import { track } from './tracker/tracker';
 import mongoose from 'mongoose';
 import * as Sentry from '@sentry/node';
+import User from './schemas/User';
 
 process.env.NODE_ENV = 'development';
 
@@ -23,7 +24,7 @@ client.on('shardReady', (shard) => {
 loadCommands(client.client.commands);
 
 // command handler
-client.on('interactionCreate', (interaction) => {
+client.on('interactionCreate', async (interaction) => {
     Sentry.profiler.startProfiler();
     //if (!interaction.isCommand()) return; // this is not in the aetherial library yet
 
@@ -31,7 +32,16 @@ client.on('interactionCreate', (interaction) => {
 
     if (!command) return;
 
-    try { // @ts-ignore
+    let user = await User.findOne({ _id: interaction.user.id });
+    if (!user)
+        user = await User.create({
+            _id: interaction.user.id,
+            tracking: false,
+            joined: Date.now(),
+        });
+
+    try {
+        // @ts-ignore
         command.run({ interaction, client });
     } catch (error) {
         console.error(error);

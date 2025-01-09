@@ -18,23 +18,22 @@ export async function track(client: Shard) {
     const users = await User.find({ tracking: true });
 
     for (let presence of client.presences.values()) {
-        if (!users.find((u) => u.id === presence.user.id)) {
-            console.log(`Skipping ${presence.user.id}`);
-            continue;
+        if (users.find((u) => u._id === presence.user.id)) {
+            console.log(`--> Tracking ${presence.user.id}`);
+            try {
+                let state = new TrackState( //@ts-ignore
+                    presence,
+                    activityCache,
+                    bulkActivityQueue,
+                    bulkUserQueue
+                );
+                await state.track();
+            } catch (error) {
+                console.log('ERROR -> Presence:', presence.user.id);
+                console.log(error);
+            }
         }
-        console.log(`Tracking ${presence.user.id}`);
-        try {
-            let state = new TrackState( //@ts-ignore
-                presence,
-                activityCache,
-                bulkActivityQueue,
-                bulkUserQueue
-            );
-            await state.track();
-        } catch (error) {
-            console.log('ERROR -> Presence:', presence.user.id);
-            console.log(error);
-        }
+        console.log(`Skipping ${presence.user.id}`);
     }
     console.log(JSON.stringify(bulkActivityQueue, null, 2));
 
