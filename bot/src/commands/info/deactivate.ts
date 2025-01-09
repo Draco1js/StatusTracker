@@ -1,4 +1,4 @@
-import { MessageEmbed } from '../../aetherial/src';
+import { Command, MessageEmbed } from '../../aetherial/src';
 import User from '../../schemas/User';
 
 export default {
@@ -34,4 +34,4 @@ export default {
             ],
         });
     },
-};
+} as Command;

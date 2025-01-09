@@ -41,6 +41,7 @@ client.on('interactionCreate', async (interaction) => {
         });
 
     try {
+        interaction.user = { id: interaction.data.member.user.id };
         // @ts-ignore
         command.run({ interaction, client });
     } catch (error) {
