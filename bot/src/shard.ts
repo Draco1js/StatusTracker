@@ -26,6 +26,7 @@ loadCommands(client.client.commands);
 // command handler
 client.on('interactionCreate', async (interaction) => {
     Sentry.profiler.startProfiler();
+    interaction.user = { id: interaction.data.member.user.id };
     //if (!interaction.isCommand()) return; // this is not in the aetherial library yet
 
     const command = client.client.commands.get(interaction.commandName);
@@ -41,7 +42,6 @@ client.on('interactionCreate', async (interaction) => {
         });
 
     try {
-        interaction.user = { id: interaction.data.member.user.id };
         // @ts-ignore
         command.run({ interaction, client });
     } catch (error) {
