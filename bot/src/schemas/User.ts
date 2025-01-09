@@ -9,5 +9,6 @@ export default model(
             type: Array,
         },
         joined: { type: Number, required: true, default: Date.now() },
+        tracking: { type: Boolean, required: true, default: false },
     })
 );

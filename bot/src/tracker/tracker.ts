@@ -15,8 +15,14 @@ export async function track(client: Shard) {
     const bulkUserQueue = [];
     const bulkActivityQueue = [];
     const activityCache = new Map();
+    const users = await User.find({ tracking: true });
 
     for (let presence of client.presences.values()) {
+        if (!users.find((u) => u.id === presence.user.id)) {
+            console.log(`Skipping ${presence.user.id}`);
+            continue;
+        }
+        console.log(`Tracking ${presence.user.id}`);
         try {
             let state = new TrackState( //@ts-ignore
                 presence,
