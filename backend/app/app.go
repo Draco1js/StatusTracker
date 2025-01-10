@@ -1,12 +1,18 @@
 package app
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
 	stmongo "st/backend/app/mongo"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ravener/discord-oauth2"
 	"github.com/vicanso/go-charts/v2"
+	"golang.org/x/oauth2"
 )
 
 type App struct {
@@ -39,8 +45,174 @@ func (actd *ActivityData) push_dur(element float64) {
 	actd.duration = append(actd.duration, element)
 }
 
+/*
+	type MongoStore struct {
+		collection *mongo.Collection
+		expiration time.Duration
+	}
+
+// NewMongoStore creates a new instance of MongoStore
+
+	func NewMongoStore(collection *mongo.Collection, expiration time.Duration) *MongoStore {
+		return &MongoStore{
+			collection: collection,
+			expiration: expiration,
+		}
+	}
+
+// Get retrieves a session value from MongoDB
+
+	func (s *MongoStore) Get(r *http.Request, key string) (*sessions.Session, error) {
+		var session sessions.Session
+		session.ID = key
+		err := s.collection.FindOne(context.Background(), bson.M{"key": key}).Decode(&session)
+		if err != nil {
+			return nil, err
+		}
+		return &session, nil
+	}
+
+// Set stores a session in MongoDB
+
+	func (s *MongoStore) Set(r *http.Request, key string, value *sessions.Session) error {
+		_, err := s.collection.UpdateOne(
+			context.Background(),
+			bson.M{"key": key},
+			bson.M{
+				"$set": bson.M{
+					"data":      value,
+					"expiresAt": time.Now().Add(s.expiration),
+				},
+			},
+			options.Update().SetUpsert(true),
+		)
+		return err
+	}
+
+// Delete removes a session from MongoDB
+
+	func (s *MongoStore) Delete(r *http.Request, key string) error {
+		_, err := s.collection.DeleteOne(context.Background(), bson.M{"key": key})
+		return err
+	}
+
+// Options is an empty function as it won't apply to MongoDB
+func (s *MongoStore) Options(options sessions.Options) {}
+*/
 func (a *App) Run() {
 	mongoc := stmongo.Initialize()
+
+	// OAuth2
+
+	conf := &oauth2.Config{
+		RedirectURL:  os.Getenv("REDIRECT_URI"),
+		ClientID:     os.Getenv("CLIENT_ID"),
+		ClientSecret: os.Getenv("CLIENT_SECRET"),
+		Scopes:       []string{discord.ScopeIdentify},
+		Endpoint:     discord.Endpoint,
+	}
+
+	/*
+		client, err := mongo.NewClient(options.Client().ApplyURI(os.Getenv("MONGODB_URI")))
+		if err != nil {
+			panic(err)
+		}
+		if err := client.Connect(context.Background()); err != nil {
+			panic(err)
+		}
+
+		collection := client.Database("session_db").Collection("sessions")
+		store := NewMongoStore(collection, 24*time.Hour)
+
+		a.server.Use(sessions.Sessions("mysession", store))
+	*/
+
+	const state = "random22" // generate random state later
+
+	a.server.GET("/auth", func(c *gin.Context) {
+		/*
+			// Retrieve the session
+			session := sessions.Default(c)
+			userID := session.Get("user_id")
+
+			if userID != nil {
+				// User is already authenticated, return their data from the database
+				var user map[string]interface{}
+				err := store.collection.FindOne(context.Background(), bson.M{"id": userID}).Decode(&user)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user data"})
+					return
+				}
+
+				c.JSON(http.StatusOK, gin.H{
+					"message": "User already authenticated",
+					"user":    user,
+				})
+				return
+			}
+		*/
+		// If not authenticated, redirect to the Discord OAuth2 authorization page
+		c.Redirect(http.StatusTemporaryRedirect, conf.AuthCodeURL(state))
+	})
+
+	a.server.GET("/auth/callback", func(c *gin.Context) {
+		if c.Query("state") != state {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid state",
+			})
+			return
+		}
+
+		// Exchange authorization code for token
+		token, err := conf.Exchange(context.Background(), c.Query("code"))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Get user info from Discord
+		client := conf.Client(context.Background(), token)
+		res, err := client.Get("https://discord.com/api/users/@me")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer res.Body.Close()
+
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		var userInfo map[string]interface{}
+		if err := json.Unmarshal(body, &userInfo); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		/*
+			// Save user info in the database
+			_, err = store.collection.UpdateOne(
+				context.Background(),
+				bson.M{"id": userInfo["id"]},
+				bson.M{"$set": userInfo},
+				options.Update().SetUpsert(true),
+			)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save user data"})
+				return
+			}
+
+			// Save user ID in the session
+			session := sessions.Default(c)
+			session.Set("user_id", userInfo["id"])
+			if err := session.Save(); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
+				return
+			}
+		*/
+		c.JSON(http.StatusOK, gin.H{"message": "Authentication successful", "user": userInfo})
+	})
 
 	a.server.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
