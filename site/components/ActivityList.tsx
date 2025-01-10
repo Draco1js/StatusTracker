@@ -14,7 +14,7 @@ import imp from '@/lib/emojis.json';
 const emojis: { [key: string]: string } = imp;
 
 interface ActivityListProps {
-    activities: Activity[];
+    activities: Activity[] | null;
 }
 
 // https://cdn.discordapp.com/emojis/757181674093150278.webp?size=240
@@ -38,35 +38,47 @@ export default function ActivityList({ activities }: ActivityListProps) {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {activities.map((activity) => (
-                            <TableRow key={activity.id + activity.name}>
-                                <TableCell className="font-medium flex flex-row items-center">
-                                    {emojis[activity.name] && (
-                                        <Image
-                                            alt={activity.name}
-                                            width={20}
-                                            height={20}
-                                            src={`https://cdn.discordapp.com/emojis/${
-                                                emojis[activity.name]
-                                            }.webp?size=240`}
-                                            className="mr-1"
-                                        />
-                                    )}
-                                    {activity.name}
-                                </TableCell>
-                                <TableCell>
-                                    {formatDuration(activity.duration)}
-                                </TableCell>
-                                <TableCell>
-                                    {new Date(
-                                        activity.last_tracked
-                                    ).toLocaleString()}
-                                </TableCell>
-                                <TableCell>
-                                    {activity.timesPlayed || 'N/A'}
+                        {activities ? (
+                            activities.map((activity) => (
+                                <TableRow key={activity.id + activity.name}>
+                                    <TableCell className="font-medium flex flex-row items-center">
+                                        {emojis[activity.name] && (
+                                            <Image
+                                                alt={activity.name}
+                                                width={20}
+                                                height={20}
+                                                src={`https://cdn.discordapp.com/emojis/${
+                                                    emojis[activity.name]
+                                                }.webp?size=240`}
+                                                className="mr-1"
+                                            />
+                                        )}
+                                        {activity.name}
+                                    </TableCell>
+                                    <TableCell>
+                                        {formatDuration(activity.duration)}
+                                    </TableCell>
+                                    <TableCell>
+                                        {new Date(
+                                            activity.last_tracked
+                                        ).toLocaleDateString('en-GB', {
+                                            day: '2-digit',
+                                            month: 'short',
+                                            year: '2-digit',
+                                        })}
+                                    </TableCell>
+                                    <TableCell>
+                                        {activity.timesPlayed || 'N/A'}
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={4} className="text-center">
+                                    No activities found
                                 </TableCell>
                             </TableRow>
-                        ))}
+                        )}
                     </TableBody>
                 </Table>
             </CardContent>

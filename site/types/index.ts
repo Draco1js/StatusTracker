@@ -19,3 +19,11 @@ export interface ApiResponse {
 	user: User;
 }
 
+export interface GlobalActivity {
+	_id: string;
+	total_duration: number;
+}
+
+export interface GlobalStats {
+	activities: GlobalActivity[];
+}
