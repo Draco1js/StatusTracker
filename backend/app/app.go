@@ -93,7 +93,7 @@ func fetchRemoteEmojis() (FormattedEmojiJSON, error) {
 
 	formatted := make(FormattedEmojiJSON)
 	for _, emoji := range emojiResponse.Items {
-		formatted[emoji.ID] = emoji.Name
+		formatted[emoji.Name] = emoji.ID
 	}
 
 	return formatted, nil
