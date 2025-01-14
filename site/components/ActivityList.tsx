@@ -16,12 +16,25 @@ interface ActivityListProps {
     activities: Activity[] | null;
 }
 
+function parseEmoji(activity: Activity) {
+    let emojiName = activity.name
+        .normalize('NFC')
+        .replace(/ /gm, '')
+        .replace(/\-/gm, '')
+        .replace(/'/gm, '');
+    if (emojiName == "TomClancy'sRainbowSixSiege")
+        emojiName = 'RainbowSixSiege';
+    return emojiName;
+}
+
 // https://cdn.discordapp.com/emojis/757181674093150278.webp?size=240
 
 export default async function ActivityList({ activities }: ActivityListProps) {
     const emojis = await axios
         .get(`${process.env.NEXT_PUBLIC_API_BASE}/emojis`)
         .then((res) => res.data);
+
+    activities?.forEach((activity) => (activity.name = parseEmoji(activity)));
 
     return (
         <Card className="bg-white shadow-xl">
