@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getsentry/sentry-go"
+	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 	"github.com/vicanso/go-charts/v2"
 )
@@ -169,6 +171,16 @@ func refreshEmojis() {
 func (s *MongoStore) Options(options sessions.Options) {}
 */
 func (a *App) Run() {
+
+	if err := sentry.Init(sentry.ClientOptions{
+		Dsn:              os.Getenv("SENTRY_DSN"),
+		EnableTracing:    true,
+		TracesSampleRate: 1.0,
+	}); err != nil {
+		fmt.Printf("Sentry initialization failed: %v\n", err)
+	}
+	a.server.Use(sentrygin.New(sentrygin.Options{Repanic: true}))
+
 	go refreshEmojis()
 	mongoc := stmongo.Initialize()
 
