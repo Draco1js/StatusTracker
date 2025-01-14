@@ -17,7 +17,7 @@ interface UserInfoCardProps {
 }
 
 export default function UserInfoCard({ user, apiUser, activities }: UserInfoCardProps) {
-    let totaltp = activities ? activities.reduce((acc, cur) => acc + cur.duration, 0) : 0;
+    const totaltp = activities ? activities.reduce((acc, cur) => acc + cur.duration, 0) : 0;
     return (
         <Card className="bg-white shadow-xl">
             <CardHeader className="flex flex-row items-center justify-between space-x-4 pb-2">
