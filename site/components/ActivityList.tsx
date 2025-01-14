@@ -16,8 +16,8 @@ interface ActivityListProps {
     activities: Activity[] | null;
 }
 
-function parseEmoji(activity: Activity) {
-    let emojiName = activity.name
+function parseEmoji(activity: string) {
+    let emojiName = activity
         .normalize('NFC')
         .replace(/ /gm, '')
         .replace(/\-/gm, '')
@@ -32,9 +32,8 @@ function parseEmoji(activity: Activity) {
 export default async function ActivityList({ activities }: ActivityListProps) {
     const emojis = await axios
         .get(`${process.env.NEXT_PUBLIC_API_BASE}/emojis`)
-        .then((res) => res.data);
 
-    activities?.forEach((activity) => (activity.name = parseEmoji(activity)));
+    console.log(emojis.data);
 
     return (
         <Card className="bg-white shadow-xl">
@@ -58,13 +57,17 @@ export default async function ActivityList({ activities }: ActivityListProps) {
                             activities.map((activity) => (
                                 <TableRow key={activity.id + activity.name}>
                                     <TableCell className="font-medium flex flex-row items-center">
-                                        {emojis[activity.name] && (
+                                        {emojis.data[parseEmoji(activity.name)] && (
                                             <Image
                                                 alt={activity.name}
                                                 width={20}
                                                 height={20}
                                                 src={`https://cdn.discordapp.com/emojis/${
-                                                    emojis[activity.name]
+                                                    emojis.data[
+                                                        parseEmoji(
+                                                            activity.name
+                                                        )
+                                                    ]
                                                 }.webp?size=240`}
                                                 className="mr-1"
                                             />
