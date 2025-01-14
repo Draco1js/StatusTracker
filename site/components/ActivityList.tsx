@@ -10,8 +10,7 @@ import {
 } from '@/components/ui/table';
 import { formatDuration } from '@/lib/utils';
 import Image from 'next/image';
-import imp from '@/lib/emojis.json';
-const emojis: { [key: string]: string } = imp;
+import axios from 'axios';
 
 interface ActivityListProps {
     activities: Activity[] | null;
@@ -19,7 +18,11 @@ interface ActivityListProps {
 
 // https://cdn.discordapp.com/emojis/757181674093150278.webp?size=240
 
-export default function ActivityList({ activities }: ActivityListProps) {
+export default async function ActivityList({ activities }: ActivityListProps) {
+    const emojis = await axios
+        .get(`${process.env.NEXT_PUBLIC_API_BASE}/emojis`)
+        .then((res) => res.data);
+
     return (
         <Card className="bg-white shadow-xl">
             <CardHeader>
