@@ -23,36 +23,90 @@ client.on('shardReady', (shard) => {
 
 loadCommands(client.client.commands);
 
-// command handler
+// Command handler
 client.on('interactionCreate', async (interaction) => {
-    Sentry.profiler.startProfiler();
-    interaction.user = { id: interaction.data.member.user.id };
-    //if (!interaction.isCommand()) return; // this is not in the aetherial library yet
+    // Start a transaction for the interaction
+    await Sentry.startSpan(
+        { name: `Command: ${interaction.commandName}`, op: 'interaction' },
+        async (interactionSpan) => {
+            try {
+                interaction.user = { id: interaction.data.member.user.id };
 
-    const command = client.client.commands.get(interaction.commandName);
+                const command = client.client.commands.get(
+                    interaction.commandName
+                );
+                if (!command) {
+                    interactionSpan.setStatus({
+                        code: 2,
+                        message: 'Command not found',
+                    });
+                    return;
+                }
 
-    if (!command) return;
+                let user;
 
-    let user = await User.findOne({ _id: interaction.user.id });
-    if (!user)
-        user = await User.create({
-            _id: interaction.user.id,
-            tracking: false,
-            joined: Date.now(),
-        });
+                // Span for database operation: Find user
+                await Sentry.startSpan(
+                    { name: 'Find User in DB', op: 'db.query' },
+                    async (dbFindSpan) => {
+                        user = await User.findOne({ _id: interaction.user.id });
+                        if (!user) {
+                            dbFindSpan.setStatus({
+                                code: 2,
+                                message: 'User not found',
+                            });
+                        } else {
+                            dbFindSpan.setStatus({ code: 1 });
+                        }
+                    }
+                );
 
-    try {
-        // @ts-ignore
-        command.run({ interaction, client });
-    } catch (error) {
-        console.error(error);
-        interaction.reply({
-            content: 'There was an error while executing this command!',
-            ephemeral: true,
-        });
-    }
+                if (!user) {
+                    // Span for database operation: Create user
+                    await Sentry.startSpan(
+                        { name: 'Create User in DB', op: 'db.query' },
+                        async (dbCreateSpan) => {
+                            user = await User.create({
+                                _id: interaction.user.id,
+                                tracking: false,
+                                joined: Date.now(),
+                            });
+                            dbCreateSpan.setStatus({ code: 1 });
+                        }
+                    );
+                }
 
-    Sentry.profiler.stopProfiler();
+                // Span for command execution
+                await Sentry.startSpan(
+                    {
+                        name: `Execute Command: ${interaction.commandName}`,
+                        op: 'command.run',
+                    },
+                    async (commandSpan) => {
+                        try { // @ts-ignore
+                            await command.run({ interaction, client });
+                            commandSpan.setStatus({ code: 1});
+                        } catch (error) {
+                            Sentry.captureException(error);
+                            commandSpan.setStatus({ code: 2, message: 'Command execution error' });
+                            interaction.reply({
+                                content:
+                                    'There was an error while executing this command!',
+                                ephemeral: true,
+                            });
+                        }
+                    }
+                );
+            } catch (error) {
+                // Capture any unhandled errors in Sentry
+                Sentry.captureException(error);
+                interactionSpan.setStatus({ code: 2, message: 'Unhandled error' });
+            } finally {
+                // End the parent span (interactionSpan) when done
+                interactionSpan.setStatus({ code: 1 });
+            }
+        }
+    );
 });
 
 mongoose.connect(config.mongo);

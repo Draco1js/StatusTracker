@@ -8,4 +8,5 @@ Sentry.init({
         nodeProfilingIntegration()
     ],
     tracesSampleRate: 1.0,
+    profilesSampleRate: 1.0,
 })
