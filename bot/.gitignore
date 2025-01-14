@@ -5,3 +5,5 @@ dist
 
 # Sentry Config File
 .sentryclirc
+
+emojis.json

@@ -2,6 +2,7 @@ import { IntentBuilder, loadCommands, registerCommands, ShardingManager } from '
 import config from '../config.json';
 import signale from 'signale';
 import path from 'path';
+import './emoji/manager';
 
 const sm = new ShardingManager(
     config.token,

@@ -1,18 +1,17 @@
 package app
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	stmongo "st/backend/app/mongo"
+	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ravener/discord-oauth2"
 	"github.com/vicanso/go-charts/v2"
-	"golang.org/x/oauth2"
 )
 
 type App struct {
@@ -30,6 +29,22 @@ type ActivityData struct {
 	duration []float64
 }
 
+type Emoji struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type EmojiResponse struct {
+	Items []Emoji `json:"items"`
+}
+
+type FormattedEmojiJSON map[string]string
+
+var (
+	emojis      FormattedEmojiJSON
+	emojisMutex sync.RWMutex
+)
+
 func activityDataCreate() *ActivityData {
 	return &ActivityData{
 		name:     make([]string, 0),
@@ -43,6 +58,60 @@ func (actd *ActivityData) push_name(element string) {
 
 func (actd *ActivityData) push_dur(element float64) {
 	actd.duration = append(actd.duration, element)
+}
+
+func fetchRemoteEmojis() (FormattedEmojiJSON, error) {
+	url := fmt.Sprintf("https://discord.com/api/v10/applications/%s/emojis", os.Getenv("CLIENT_ID"))
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bot "+os.Getenv("CLIENT_TOKEN"))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to fetch emojis, status code: %d", resp.StatusCode)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var emojiResponse EmojiResponse
+	if err := json.Unmarshal(body, &emojiResponse); err != nil {
+		return nil, err
+	}
+
+	formatted := make(FormattedEmojiJSON)
+	for _, emoji := range emojiResponse.Items {
+		formatted[emoji.ID] = emoji.Name
+	}
+
+	return formatted, nil
+}
+
+func refreshEmojis() {
+	for {
+		updatedEmojis, err := fetchRemoteEmojis()
+		if err != nil {
+			fmt.Printf("Failed to fetch emojis: %v\n", err)
+		} else {
+			emojisMutex.Lock()
+			emojis = updatedEmojis
+			emojisMutex.Unlock()
+			fmt.Printf("Successfully refreshed emojis, total: %d\n", len(updatedEmojis))
+		}
+		time.Sleep(15 * time.Minute)
+	}
 }
 
 /*
@@ -100,17 +169,18 @@ func (actd *ActivityData) push_dur(element float64) {
 func (s *MongoStore) Options(options sessions.Options) {}
 */
 func (a *App) Run() {
+	go refreshEmojis()
 	mongoc := stmongo.Initialize()
 
 	// OAuth2
 
-	conf := &oauth2.Config{
-		RedirectURL:  os.Getenv("REDIRECT_URI"),
-		ClientID:     os.Getenv("CLIENT_ID"),
-		ClientSecret: os.Getenv("CLIENT_SECRET"),
-		Scopes:       []string{discord.ScopeIdentify},
-		Endpoint:     discord.Endpoint,
-	}
+	// conf := &oauth2.Config{
+	// 	RedirectURL:  os.Getenv("REDIRECT_URI"),
+	// 	ClientID:     os.Getenv("CLIENT_ID"),
+	// 	ClientSecret: os.Getenv("CLIENT_SECRET"),
+	// 	Scopes:       []string{discord.ScopeIdentify},
+	// 	Endpoint:     discord.Endpoint,
+	// }
 
 	/*
 		client, err := mongo.NewClient(options.Client().ApplyURI(os.Getenv("MONGODB_URI")))
@@ -127,91 +197,97 @@ func (a *App) Run() {
 		a.server.Use(sessions.Sessions("mysession", store))
 	*/
 
-	const state = "random22" // generate random state later
+	// const state = "random22" // generate random state later
 
-	a.server.GET("/auth", func(c *gin.Context) {
-		/*
-			// Retrieve the session
-			session := sessions.Default(c)
-			userID := session.Get("user_id")
+	// a.server.GET("/auth", func(c *gin.Context) {
+	// 	/*
+	// 		// Retrieve the session
+	// 		session := sessions.Default(c)
+	// 		userID := session.Get("user_id")
 
-			if userID != nil {
-				// User is already authenticated, return their data from the database
-				var user map[string]interface{}
-				err := store.collection.FindOne(context.Background(), bson.M{"id": userID}).Decode(&user)
-				if err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user data"})
-					return
-				}
+	// 		if userID != nil {
+	// 			// User is already authenticated, return their data from the database
+	// 			var user map[string]interface{}
+	// 			err := store.collection.FindOne(context.Background(), bson.M{"id": userID}).Decode(&user)
+	// 			if err != nil {
+	// 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user data"})
+	// 				return
+	// 			}
 
-				c.JSON(http.StatusOK, gin.H{
-					"message": "User already authenticated",
-					"user":    user,
-				})
-				return
-			}
-		*/
-		// If not authenticated, redirect to the Discord OAuth2 authorization page
-		c.Redirect(http.StatusTemporaryRedirect, conf.AuthCodeURL(state))
-	})
+	// 			c.JSON(http.StatusOK, gin.H{
+	// 				"message": "User already authenticated",
+	// 				"user":    user,
+	// 			})
+	// 			return
+	// 		}
+	// 	*/
+	// 	// If not authenticated, redirect to the Discord OAuth2 authorization page
+	// 	c.Redirect(http.StatusTemporaryRedirect, conf.AuthCodeURL(state))
+	// })
 
-	a.server.GET("/auth/callback", func(c *gin.Context) {
-		if c.Query("state") != state {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "Invalid state",
-			})
-			return
-		}
+	// a.server.GET("/auth/callback", func(c *gin.Context) {
+	// 	if c.Query("state") != state {
+	// 		c.JSON(http.StatusBadRequest, gin.H{
+	// 			"error": "Invalid state",
+	// 		})
+	// 		return
+	// 	}
 
-		// Exchange authorization code for token
-		token, err := conf.Exchange(context.Background(), c.Query("code"))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
+	// 	// Exchange authorization code for token
+	// 	token, err := conf.Exchange(context.Background(), c.Query("code"))
+	// 	if err != nil {
+	// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// 		return
+	// 	}
 
-		// Get user info from Discord
-		client := conf.Client(context.Background(), token)
-		res, err := client.Get("https://discord.com/api/users/@me")
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		defer res.Body.Close()
+	// 	// Get user info from Discord
+	// 	client := conf.Client(context.Background(), token)
+	// 	res, err := client.Get("https://discord.com/api/users/@me")
+	// 	if err != nil {
+	// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// 		return
+	// 	}
+	// 	defer res.Body.Close()
 
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
+	// 	body, err := ioutil.ReadAll(res.Body)
+	// 	if err != nil {
+	// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// 		return
+	// 	}
 
-		var userInfo map[string]interface{}
-		if err := json.Unmarshal(body, &userInfo); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		/*
-			// Save user info in the database
-			_, err = store.collection.UpdateOne(
-				context.Background(),
-				bson.M{"id": userInfo["id"]},
-				bson.M{"$set": userInfo},
-				options.Update().SetUpsert(true),
-			)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save user data"})
-				return
-			}
+	// 	var userInfo map[string]interface{}
+	// 	if err := json.Unmarshal(body, &userInfo); err != nil {
+	// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// 		return
+	// 	}
+	// 	/*
+	// 		// Save user info in the database
+	// 		_, err = store.collection.UpdateOne(
+	// 			context.Background(),
+	// 			bson.M{"id": userInfo["id"]},
+	// 			bson.M{"$set": userInfo},
+	// 			options.Update().SetUpsert(true),
+	// 		)
+	// 		if err != nil {
+	// 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save user data"})
+	// 			return
+	// 		}
 
-			// Save user ID in the session
-			session := sessions.Default(c)
-			session.Set("user_id", userInfo["id"])
-			if err := session.Save(); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
-				return
-			}
-		*/
-		c.JSON(http.StatusOK, gin.H{"message": "Authentication successful", "user": userInfo})
+	// 		// Save user ID in the session
+	// 		session := sessions.Default(c)
+	// 		session.Set("user_id", userInfo["id"])
+	// 		if err := session.Save(); err != nil {
+	// 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
+	// 			return
+	// 		}
+	// 	*/
+	// 	c.JSON(http.StatusOK, gin.H{"message": "Authentication successful", "user": userInfo})
+	// })
+
+	a.server.GET("/emojis", func(c *gin.Context) {
+		emojisMutex.RLock()
+		defer emojisMutex.RUnlock()
+		c.JSON(http.StatusOK, emojis)
 	})
 
 	a.server.GET("/ping", func(c *gin.Context) {
