@@ -42,6 +42,7 @@ export default async function Home() {
                         <UserInfoCard
                             user={user}
                             apiUser={data ? data.user : null}
+                            activities={data ? data.activities : null}
                         />
                         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <ActivityList

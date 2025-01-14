@@ -33,8 +33,6 @@ export default async function ActivityList({ activities }: ActivityListProps) {
     const emojis = await axios
         .get(`${process.env.NEXT_PUBLIC_API_BASE}/emojis`)
 
-    console.log(emojis.data);
-
     return (
         <Card className="bg-white shadow-xl">
             <CardHeader>

@@ -1,5 +1,5 @@
 import { User } from '@clerk/nextjs/server';
-import { User as ApiUser } from '@/types';
+import { Activity, User as ApiUser } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import {
@@ -8,13 +8,16 @@ import {
     SignInButton,
     SignOutButton,
 } from '@clerk/nextjs';
+import { formatDuration } from '../lib/utils';
 
 interface UserInfoCardProps {
     user: User | null;
     apiUser: ApiUser | null;
+    activities: Activity[] | null;
 }
 
-export default function UserInfoCard({ user, apiUser }: UserInfoCardProps) {
+export default function UserInfoCard({ user, apiUser, activities }: UserInfoCardProps) {
+    let totaltp = activities ? activities.reduce((acc, cur) => acc + cur.duration, 0) : 0;
     return (
         <Card className="bg-white shadow-xl">
             <CardHeader className="flex flex-row items-center justify-between space-x-4 pb-2">
@@ -55,10 +58,10 @@ export default function UserInfoCard({ user, apiUser }: UserInfoCardProps) {
                 <div className="grid grid-cols-2 gap-4 mt-4">
                     <div className="bg-indigo-100 p-4 rounded-lg">
                         <p className="text-sm font-semibold text-indigo-800">
-                            User ID
+                            Time played
                         </p>
                         <p className="text-lg text-indigo-600">
-                            {apiUser ? apiUser._id : '-'}
+                            {apiUser ? formatDuration(totaltp) : '-'}
                         </p>
                     </div>
                     <div className="bg-purple-100 p-4 rounded-lg">
@@ -88,7 +91,7 @@ export default function UserInfoCard({ user, apiUser }: UserInfoCardProps) {
                             Activities
                         </p>
                         <p className="text-lg text-blue-600">
-                            {apiUser ? apiUser.activities.length : '-'}
+                            {activities ? activities.length : '-'}
                         </p>
                     </div>
                 </div>
