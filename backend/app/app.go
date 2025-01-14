@@ -308,6 +308,23 @@ func (a *App) Run() {
 		})
 	})
 
+	a.server.GET(`/user/:id/current`, func(c *gin.Context) {
+		id := c.Param("id")
+
+		if err := stmongo.ValidateID(id); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		activity := stmongo.FindActivitiesPlaying(mongoc.Client, id)
+
+		c.JSON(http.StatusOK, gin.H{
+			"activity": activity,
+		})
+	})
+
 	a.server.GET("/user/:id", func(c *gin.Context) {
 		id := c.Param("id")
 

@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"time"
 
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
@@ -84,6 +85,30 @@ func FindActivities(client *mongo.Client, id string) []bson.M {
 	}
 
 	cursor, err := coll.Find(context.TODO(), bson.D{{Key: "id", Value: id}}, options.Find().SetSort(bson.D{{Key: "duration", Value: -1}}).SetProjection(bson.D{{Key: "__v", Value: 0}, {Key: "_id", Value: 0}}))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var results []bson.M
+	if err = cursor.All(context.TODO(), &results); err != nil {
+		log.Fatal(err)
+	}
+
+	return results
+}
+
+func makeTimestamp() int64 {
+	return time.Now().UnixNano() / 1e6
+}
+
+func FindActivitiesPlaying(client *mongo.Client, id string) []bson.M {
+	coll := client.Database("production").Collection("activities")
+
+	if err := ValidateID(id); err != nil {
+		return []bson.M{{"error": err.Error()}}
+	}
+
+	cursor, err := coll.Find(context.TODO(), bson.D{{Key: "id", Value: id}, {Key: "last_tracked", Value: bson.D{{Key: "$gt", Value: makeTimestamp() - (1000 * 60 * 3)}}}}, options.Find().SetSort(bson.D{{Key: "duration", Value: -1}}).SetProjection(bson.D{{Key: "__v", Value: 0}, {Key: "_id", Value: 0}}))
 	if err != nil {
 		log.Fatal(err)
 	}
